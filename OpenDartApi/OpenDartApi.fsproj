@@ -4,6 +4,9 @@
     <TargetFramework>net5.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOn>3390;$(WarnOn)</WarnOn>
+    <PackageId>OpenDartApi</PackageId>
+    <Version>0.0.1</Version>
+    <Authors>Bonjune Jang</Authors>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ResponseTypes.fs" />
