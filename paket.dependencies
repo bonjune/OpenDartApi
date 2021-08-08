@@ -1,0 +1,10 @@
+generate_load_scripts: true
+
+source https://api.nuget.org/v3/index.json
+
+nuget FSharp.Data
+nuget Thoth.Json.Net
+nuget Expecto
+
+storage: none
+framework: net50
