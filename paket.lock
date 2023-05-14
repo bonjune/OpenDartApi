@@ -42,6 +42,8 @@ NUGET
       FSharp.Data.Http (>= 6.2)
       FSharp.Data.Json.Core (>= 6.2)
       FSharp.Data.Runtime.Utilities (>= 6.2)
+    FsHttp (10.0)
+      FSharp.Core (>= 5.0)
     Mono.Cecil (0.11.5)
     Newtonsoft.Json (13.0.3)
     Thoth.Json.Net (11.0)

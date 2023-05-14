@@ -3,6 +3,7 @@ module OpenDartApi.DartApi
 open System.IO
 open FSharp.Data
 open FSharp.Data.HttpRequestHeaders
+open FsHttp
 open Thoth.Json.Net
 open ResponseTypes
 
@@ -19,6 +20,12 @@ type ReportCode =
         | Qrt3 -> "11014"
         | Annual -> "11011"
 
+[<Literal>]
+let HOST = "opendart.fss.or.kr"
+
+
+[<Literal>]
+let API_ENDPOINT = "https://opendart.fss.or.kr/api"
 
 type DartApi(crtfc_key: string) =
     let defaultHeaders =
@@ -34,6 +41,20 @@ type DartApi(crtfc_key: string) =
             headers = defaultHeaders,
             responseEncodingOverride = "UTF-8"
         )
+
+    member _.RequestAsync(path: string, ?queryParams) =
+        let url = $"{API_ENDPOINT}/{path}"
+        let queryParams = [ "crtfc_key", box crtfc_key; yield! defaultArg queryParams [] ]
+
+        http {
+            GET url
+            query queryParams
+            Host "opendart.fss.or.kr"
+            Accept "*/*"
+            UserAgent "open-dart-api-fsharp/0.0.1"
+        }
+        |> Request.toAsync
+
 
     /// Get response of cord codes metadata
     /// written in xml format.
@@ -306,6 +327,7 @@ type DartApi(crtfc_key: string) =
     // 상장기업 재무정보
 
     /// 단일회사 주요계정
+    /// Reference: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019016
     member this.``단일회사 주요계정``(corpCode, bsnsYear, reprtCode: ReportCode) =
         let url = "https://opendart.fss.or.kr/api/fnlttSinglAcnt.json"
 
