@@ -1,5 +1,6 @@
 module OpenDartApi.DartApi
 
+open System
 open System.IO
 open FSharp.Data
 open FSharp.Data.HttpRequestHeaders
@@ -39,12 +40,18 @@ let HOST = "opendart.fss.or.kr"
 let API_ENDPOINT = "https://opendart.fss.or.kr/api"
 
 type DartApi(crtfc_key: string) =
+    do
+        if crtfc_key.Length <> 40 then
+            invalidArg "crtfc_key" "crtfc_key should be of length 40"
+
+
     let defaultHeaders =
         [ Host "opendart.fss.or.kr"
           Accept "*/*"
           AcceptEncoding "gzip, deflate"
           UserAgent "fsharp-data" ]
 
+    [<Obsolete("Use `RequestAsync` instead.")>]
     member _.Request(url, ?queryParams) =
         Http.Request(
             url,
