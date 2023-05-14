@@ -3,9 +3,10 @@ module OpenDartApi.DartApi
 open System.IO
 open FSharp.Data
 open FSharp.Data.HttpRequestHeaders
-open FsHttp
 open Thoth.Json.Net
 open ResponseTypes
+open FsHttp
+open FsHttp.Response
 
 type ReportCode =
     | Qrt1
@@ -42,9 +43,12 @@ type DartApi(crtfc_key: string) =
             responseEncodingOverride = "UTF-8"
         )
 
-    member _.RequestAsync(path: string, ?queryParams) =
+    member _.RequestAsync(path: string, ?queryParams: (string * string) list) =
         let url = $"{API_ENDPOINT}/{path}"
-        let queryParams = [ "crtfc_key", box crtfc_key; yield! defaultArg queryParams [] ]
+
+        let queryParams =
+            [ "crtfc_key", crtfc_key; yield! defaultArg queryParams [] ]
+            |> List.map (fun (x, y) -> (x, box y))
 
         http {
             GET url
@@ -328,20 +332,21 @@ type DartApi(crtfc_key: string) =
 
     /// 단일회사 주요계정
     /// Reference: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019016
-    member this.``단일회사 주요계정``(corpCode, bsnsYear, reprtCode: ReportCode) =
-        let url = "https://opendart.fss.or.kr/api/fnlttSinglAcnt.json"
+    member this.``단일회사 주요계정``(corpCode: string, bsnsYear, reprtCode: ReportCode) =
+        async {
+            let! resp =
+                this.RequestAsync(
+                    "fnlttSinglAcnt.json",
+                    [ "corp_code", corpCode; "bsns_year", bsnsYear; "reprt_code", reprtCode.ToCode ]
+                )
 
-        let res =
-            this.Request(
-                url,
-                [ "corp_code", corpCode
-                  "bsns_year", bsnsYear
-                  "reprt_code", reprtCode.ToString() ]
-            )
+            let! body = toStringAsync None resp
+            return Decode.fromString ``상장기업 주요계정 Response``.Decoder body
+        }
 
-        match res.Body with
-        | Text t -> t |> Decode.fromString ``상장기업 주요계정 Response``.Decoder
-        | _ -> failwith "no binary response expected"
+    // match res.Body with
+    // | Text t -> t |> Decode.fromString ``상장기업 주요계정 Response``.Decoder
+    // | _ -> failwith "no binary response expected"
 
     /// 다중회사 주요계정
     member this.``다중회사 주요계정``(corpCodes, bsnsYear, reprtCode: ReportCode) =

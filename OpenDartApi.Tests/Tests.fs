@@ -80,10 +80,21 @@ let tests crtfc_key =
                 } ]
           testList
               "corporation financial statement section"
-              [ test "fin state api call" {
-                    let res = dart.``단일회사 주요계정`` ("00126380", "2020", ReportCode.Annual)
-                    Expect.isOk res "getting fin state api response and parsing failed"
+              [
+                // test "fin state api call" {
+                //     let res = dart.``단일회사 주요계정`` ("00126380", "2020", ReportCode.Annual)
+                //     res |> Async.
+                //     Expect.isOk res "getting fin state api response and parsing failed"
+                // }
+
+                testCaseAsync "단일회사 주요계정"
+                <| async {
+                    let! result = dart.``단일회사 주요계정`` ("00126380", "2020", ReportCode.Annual)
+                    let account = Expect.wantOk result "Json decoding should work"
+                    do Expect.equal account.Status "000" "API requst parameters should be valid"
+                    do Expect.isGreaterThan account.List.Value.Length 0 "API should return meaningful lists"
                 }
+
                 test "fin state many api call" {
                     let res = dart.``다중회사 주요계정`` ([ "00126380"; "00401731" ], "2020", ReportCode.Annual)
                     Expect.isOk res "getting fin state many api response and parsing failed"
