@@ -21,6 +21,16 @@ type ReportCode =
         | Qrt3 -> "11014"
         | Annual -> "11011"
 
+type FinStmt =
+    | CFS // 연결재무제표
+    | OFS // 재무제표
+
+    override this.ToString() =
+        match this with
+        | CFS -> "CFS"
+        | OFS -> "OFS"
+
+
 [<Literal>]
 let HOST = "opendart.fss.or.kr"
 
@@ -43,12 +53,10 @@ type DartApi(crtfc_key: string) =
             responseEncodingOverride = "UTF-8"
         )
 
-    member _.RequestAsync(path: string, ?queryParams: (string * string) list) =
+    member _.RequestAsync(path: string, ?queryParams: (string * obj) list) =
         let url = $"{API_ENDPOINT}/{path}"
 
-        let queryParams =
-            [ "crtfc_key", crtfc_key; yield! defaultArg queryParams [] ]
-            |> List.map (fun (x, y) -> (x, box y))
+        let queryParams = [ "crtfc_key", box crtfc_key; yield! defaultArg queryParams [] ]
 
         http {
             GET url
@@ -351,45 +359,39 @@ type DartApi(crtfc_key: string) =
     /// 다중회사 주요계정
     member this.``다중회사 주요계정``(corpCodes, bsnsYear, reprtCode: ReportCode) =
         let corpCodes = corpCodes |> List.reduce (fun x y -> x + "," + y)
-        let url = "https://opendart.fss.or.kr/api/fnlttMultiAcnt.json"
 
-        let res =
-            this.Request(
-                url,
-                [ "corp_code", corpCodes
-                  "bsns_year", bsnsYear
-                  "reprt_code", reprtCode.ToString() ]
-            )
+        async {
+            let! resp =
+                this.RequestAsync(
+                    "fnlttMultiAcnt.json",
+                    [ "corp_code", corpCodes
+                      "bsns_year", bsnsYear
+                      "reprt_code", reprtCode.ToString() ]
+                )
 
-        match res.Body with
-        | Binary b -> failwith "no binary response expected"
-        | Text t -> t
-        |> Decode.fromString ``상장기업 주요계정 Response``.Decoder
+            let! body = Response.toStringAsync None resp
+            return Decode.fromString ``상장기업 주요계정 Response``.Decoder
+        }
 
     /// 단일회사 전체 재무제표
-    member this.``단일회사 전체 재무제표``(corpCode, bsnsYear, reprtCode: ReportCode, fsDiv) =
-        let url = "https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json"
+    member this.``단일회사 전체 재무제표``(corpCode, bsnsYear, reprtCode: ReportCode, fsDiv: FinStmt) =
+        async {
+            let! resp =
+                this.RequestAsync(
+                    "fnlttSinglAcntAll.json",
+                    [ "corp_code", corpCode
+                      "bsns_year", bsnsYear
+                      "reprt_code", reprtCode.ToString()
+                      "fs_div", fsDiv ]
+                )
 
-        let res =
-            this.Request(
-                url,
-                [ "corp_code", corpCode
-                  "bsns_year", bsnsYear
-                  "reprt_code", reprtCode.ToString()
-                  "fs_div", fsDiv ]
-            )
-
-        match res.Body with
-        | Text data -> data |> Decode.fromString ``상장기업 주요계정 Response``.Decoder
-        | _ -> failwith "no binary reponse expected"
+            let! body = Response.toStringAsync None resp
+            return Decode.fromString ``상장기업 주요계정 Response``.Decoder
+        }
 
     /// 재무제표 원본파일
     member this.``재무제표 원본파일``(rceptNo, reprtCode: ReportCode) =
-        let url = "https://opendart.fss.or.kr/api/fnlttXbrl.xml"
-
-        let res =
-            this.Request(url, [ "rcept_no", rceptNo; "reprt_code", reprtCode.ToString() ])
-
-        match res.Body with
-        | Binary data -> data
-        | Text t -> failwith "no text response is expected"
+        async {
+            let! resp = this.RequestAsync("fnlttXbrl.xml", [ "rcept_no", rceptNo; "reprt_code", reprtCode.ToCode ])
+            return! Response.toBytesAsync resp
+        }
