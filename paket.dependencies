@@ -1,5 +1,6 @@
 source https://api.nuget.org/v3/index.json
 
+nuget Deedle 3.0.0
 nuget FsHttp
 nuget Thoth.Json.Net
 nuget Expecto
