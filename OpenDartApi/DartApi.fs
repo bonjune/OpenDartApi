@@ -185,7 +185,7 @@ type DartApi(crtfc_key: string) =
             "irdsSttus.json",
             [ "corp_code", corpCode
               "bsns_year", businessYear
-              "reprt_code", reprt_code.ToString() ],
+              "reprt_code", reprt_code.ToCode ],
             ``증자감자현황 Response``.Decoder
         )
 
@@ -213,7 +213,7 @@ type DartApi(crtfc_key: string) =
 
 
     /// 최대주주 현황
-    member this.``최대주주 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``최대주주 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "hyslrSttus.json",
             [ "corp_code", corpCode
@@ -223,7 +223,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 최대주주 변동 현황
-    member this.``최대주주 변동 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``최대주주 변동 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "hyslrChgSttus.json",
             [ "corp_code", corpCode
@@ -233,7 +233,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 소액주주 현황
-    member this.``소액주주 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``소액주주 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "mrhlSttus.json",
             [ "corp_code", corpCode
@@ -242,7 +242,7 @@ type DartApi(crtfc_key: string) =
             ``소액주주 현황 Response``.Decoder
         )
 
-    member this.``임원 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``임원 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "exctvSttus.json",
             [ "corp_code", corpCode
@@ -251,7 +251,7 @@ type DartApi(crtfc_key: string) =
             ``임원현황 Response``.Decoder
         )
 
-    member this.``직원 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``직원 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "empSttus.json",
             [ "corp_code", corpCode
@@ -261,7 +261,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 2.9 이사, 감사의 개인별 보수 현황
-    member this.``이사감사 개인별 보수 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``이사감사 개인별 보수 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "hmvAuditIndvdlBySttus.json",
             [ "corp_code", corpCode
@@ -271,7 +271,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 2.10 - 이사, 감사 전체의 보수 현황
-    member this.``이사감사 전체 보수 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``이사감사 전체 보수 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "hmvAuditAllSttus.json",
             [ "corp_code", corpCode
@@ -281,7 +281,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 2.11 - 개인별 보수지급 금액(5억이상 상위5인)
-    member this.``개인별 보수지급 금액``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``개인별 보수지급 금액``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "indvdlByPay.json",
             [ "corp_code", corpCode
@@ -291,7 +291,7 @@ type DartApi(crtfc_key: string) =
         )
 
     /// 2.12 - 타법인 출자현황
-    member this.``타법인 출자 현황``(corpCode, businessYear, reportCode: ReportCode) =
+    member this.``타법인 출자 현황``(corpCode: string, businessYear, reportCode: ReportCode) =
         this.GetAndDecode(
             "otrCprInvstmntSttus.json",
             [ "corp_code", corpCode
@@ -329,7 +329,7 @@ type DartApi(crtfc_key: string) =
 
     /// 단일회사 전체 재무제표
     /// https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
-    member this.``단일회사 전체 재무제표``(corpCode, bsnsYear, reprtCode: ReportCode, fsDiv: FinStmt) =
+    member this.``단일회사 전체 재무제표``(corpCode: string, bsnsYear, reprtCode: ReportCode, fsDiv: FinStmt) =
         this.GetAndDecode(
             "fnlttSinglAcntAll.json",
             [ "corp_code", corpCode
