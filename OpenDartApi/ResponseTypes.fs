@@ -12,6 +12,19 @@ let toDecimal =
             | true, d -> d |> Some
             | _ -> None)
 
+let decodeNumber: Decoder<decimal option> =
+    let number = Decode.decimal |> Decode.andThen (fun n -> Decode.succeed (Some n))
+
+    let dash =
+        Decode.char
+        |> Decode.andThen (fun dash ->
+            if dash = '-' then
+                Decode.succeed None
+            else
+                Decode.fail "not expected")
+
+    Decode.oneOf [ number; dash ]
+
 /// 1.2 기업개황 API 응답
 type ``기업개황 Response`` =
     { Status: string
@@ -116,12 +129,12 @@ and 증자감자 =
       법인구분: string
       고유번호: string
       법인명: string
-      ``주식발행 감소일자``: string
+      ``주식발행 감소일자``: string option
       ``발행 감소 형태``: string
       ``발행 감소 주식 종류``: string
-      ``발행 감소 수량``: decimal
-      ``발행 감소 주당 액면 가액``: decimal
-      ``발행 감소 주당 가액``: decimal }
+      ``발행 감소 수량``: decimal option
+      ``발행 감소 주당 액면 가액``: decimal option
+      ``발행 감소 주당 가액``: decimal option }
 
     static member Decoder: Decoder<증자감자> =
         Decode.object (fun get ->
@@ -129,12 +142,12 @@ and 증자감자 =
               법인구분 = get.Required.Field "corp_cls" Decode.string
               고유번호 = get.Required.Field "corp_code" Decode.string
               법인명 = get.Required.Field "corp_name" Decode.string
-              ``주식발행 감소일자`` = get.Required.Field "stock_isu_dcrs_de" Decode.string
+              ``주식발행 감소일자`` = get.Optional.Field "stock_isu_dcrs_de" Decode.string
               ``발행 감소 형태`` = get.Required.Field "isu_dcrs_stle" Decode.string
               ``발행 감소 주식 종류`` = get.Required.Field "isu_dcrs_stock_knd" Decode.string
-              ``발행 감소 수량`` = get.Required.Field "isu_dcrs_qy" Decode.decimal
-              ``발행 감소 주당 액면 가액`` = get.Required.Field "isu_dcrs_mstvdv_fval_amount" Decode.decimal
-              ``발행 감소 주당 가액`` = get.Required.Field "isu_dcrs_mstvdv_amount" Decode.decimal })
+              ``발행 감소 수량`` = get.Required.Field "isu_dcrs_qy" decodeNumber
+              ``발행 감소 주당 액면 가액`` = get.Required.Field "isu_dcrs_mstvdv_fval_amount" decodeNumber
+              ``발행 감소 주당 가액`` = get.Required.Field "isu_dcrs_mstvdv_amount" decodeNumber })
 
 /// 2.2 - 배당에 관한 사항
 type ``배당관련사항 Response`` =
@@ -154,10 +167,10 @@ and 배당관련사항 =
       고유번호: string
       법인명: string
       구분: string // 구분
-      ``주식 종류``: string
-      당기: decimal
-      전기: decimal
-      전전기: decimal }
+      ``주식 종류``: string option
+      당기: decimal option
+      전기: decimal option
+      전전기: decimal option }
 
     static member Decoder: Decoder<_> =
         Decode.object (fun get ->
@@ -166,10 +179,10 @@ and 배당관련사항 =
               고유번호 = get.Required.Field "corp_code" Decode.string
               법인명 = get.Required.Field "corp_name" Decode.string
               구분 = get.Required.Field "se" Decode.string
-              ``주식 종류`` = get.Required.Field "stock_knd" Decode.string
-              당기 = get.Required.Field "thstrm" Decode.decimal
-              전기 = get.Required.Field "frmtrm" Decode.decimal
-              전전기 = get.Required.Field "lwfr" Decode.decimal })
+              ``주식 종류`` = get.Optional.Field "stock_knd" Decode.string
+              당기 = get.Required.Field "thstrm" decodeNumber
+              전기 = get.Required.Field "frmtrm" decodeNumber
+              전전기 = get.Required.Field "lwfr" decodeNumber })
 
 /// 2.3 - 자기주식 취득 및 처분 현황
 type ``자기주식 취득 및 처분 현황 Response`` =
@@ -192,11 +205,11 @@ and ``자기주식 취득 및 처분`` =
       ``취득방법 중분류``: string
       ``취득방법 소분류``: string
       ``주식 종류``: string
-      ``기초 수량``: decimal
-      ``변동 수량 취득``: decimal
-      ``변동 수량 처분``: decimal
-      ``변동 수량 소각``: decimal
-      ``기말 수량``: decimal
+      ``기초 수량``: decimal option
+      ``변동 수량 취득``: decimal option
+      ``변동 수량 처분``: decimal option
+      ``변동 수량 소각``: decimal option
+      ``기말 수량``: decimal option
       비고: string }
 
     static member Decoder: Decoder<``자기주식 취득 및 처분``> =
@@ -209,11 +222,11 @@ and ``자기주식 취득 및 처분`` =
               ``취득방법 중분류`` = get.Required.Field "acqs_mth2" Decode.string
               ``취득방법 소분류`` = get.Required.Field "acqs_mth3" Decode.string
               ``주식 종류`` = get.Required.Field "stock_knd" Decode.string
-              ``기초 수량`` = get.Required.Field "bsis_qy" Decode.decimal
-              ``변동 수량 취득`` = get.Required.Field "change_qy_acqs" Decode.decimal
-              ``변동 수량 처분`` = get.Required.Field "change_qy_dsps" Decode.decimal
-              ``변동 수량 소각`` = get.Required.Field "change_qy_incnr" Decode.decimal
-              ``기말 수량`` = get.Required.Field "trmend_qy" Decode.decimal
+              ``기초 수량`` = get.Required.Field "bsis_qy" decodeNumber
+              ``변동 수량 취득`` = get.Required.Field "change_qy_acqs" decodeNumber
+              ``변동 수량 처분`` = get.Required.Field "change_qy_dsps" decodeNumber
+              ``변동 수량 소각`` = get.Required.Field "change_qy_incnr" decodeNumber
+              ``기말 수량`` = get.Required.Field "trmend_qy" decodeNumber
               비고 = get.Required.Field "rm" Decode.string })
 
 /// 2.4 - 최대주주 현황
@@ -234,12 +247,12 @@ and 최대주주현황 =
       고유번호: string
       법인명: string
       이름: string
-      관계: string
+      관계: string option
       ``주식 종류``: string
-      ``기초 소유 주식 수``: decimal
-      ``기초 소유 주식 지분 율``: float
-      ``기말 소유 주식 수``: decimal
-      ``기말 소유 주식 지분 율``: float
+      ``기초 소유 주식 수``: decimal option
+      ``기초 소유 주식 지분 율``: decimal option
+      ``기말 소유 주식 수``: decimal option
+      ``기말 소유 주식 지분 율``: decimal option
       비고: string }
 
     static member Decoder: Decoder<_> =
@@ -249,12 +262,12 @@ and 최대주주현황 =
               고유번호 = get.Required.Field "corp_code" Decode.string
               법인명 = get.Required.Field "corp_name" Decode.string
               이름 = get.Required.Field "nm" Decode.string
-              관계 = get.Required.Field "relate" Decode.string
+              관계 = get.Optional.Field "relate" Decode.string
               ``주식 종류`` = get.Required.Field "stock_knd" Decode.string
-              ``기초 소유 주식 수`` = get.Required.Field "bsis_posesn_stock_co" Decode.decimal
-              ``기초 소유 주식 지분 율`` = get.Required.Field "bsis_posesn_stock_qota_rt" Decode.float
-              ``기말 소유 주식 수`` = get.Required.Field "trmend_posesn_stock_co" Decode.decimal
-              ``기말 소유 주식 지분 율`` = get.Required.Field "trmend_posesn_stock_qota_rt" Decode.float
+              ``기초 소유 주식 수`` = get.Required.Field "bsis_posesn_stock_co" decodeNumber
+              ``기초 소유 주식 지분 율`` = get.Required.Field "bsis_posesn_stock_qota_rt" decodeNumber
+              ``기말 소유 주식 수`` = get.Required.Field "trmend_posesn_stock_co" decodeNumber
+              ``기말 소유 주식 지분 율`` = get.Required.Field "trmend_posesn_stock_qota_rt" decodeNumber
               비고 = get.Required.Field "rm" Decode.string })
 
 /// 2.5 - 최대주주 변동 현황
@@ -276,8 +289,8 @@ and ``최대주주 변동 현황`` =
       법인명: string
       변동일: string
       ``최대 주주 명``: string
-      ``소유 주식 수``: decimal
-      지분율: float
+      ``소유 주식 수``: decimal option
+      지분율: decimal option
       ``변동 원인``: string
       비고: string }
 
@@ -289,8 +302,8 @@ and ``최대주주 변동 현황`` =
               법인명 = get.Required.Field "corp_name" Decode.string
               변동일 = get.Required.Field "change_on" Decode.string
               ``최대 주주 명`` = get.Required.Field "mxmm_shrholdr_nm" Decode.string
-              ``소유 주식 수`` = get.Required.Field "posesn_stock_co" Decode.decimal
-              지분율 = get.Required.Field "qota_rt" Decode.float
+              ``소유 주식 수`` = get.Required.Field "posesn_stock_co" decodeNumber
+              지분율 = get.Required.Field "qota_rt" decodeNumber
               ``변동 원인`` = get.Required.Field "change_cause" Decode.string
               비고 = get.Required.Field "change_cause" Decode.string })
 
@@ -403,13 +416,13 @@ and 직원현황 =
       ``개정 전 직원 수 계약직``: string
       ``개정 전 직원 수 기타``: string
       ``정규직 수``: decimal
-      ``정규직 단시간 근로자 수``: decimal
+      ``정규직 단시간 근로자 수``: decimal option
       ``계약직 수``: decimal
-      ``계약직 단시간 근로자 수``: decimal
+      ``계약직 단시간 근로자 수``: decimal option
       합계: decimal
       ``평균 근속 연수``: decimal
-      ``연간 급여 총액``: decimal
-      ``1인평균 급여 액``: decimal
+      ``연간 급여 총액``: decimal option
+      ``1인평균 급여 액``: decimal option
       비고: string }
 
     static member Decoder: Decoder<_> =
@@ -424,13 +437,13 @@ and 직원현황 =
               ``개정 전 직원 수 계약직`` = get.Required.Field "reform_bfe_emp_co_cnttk" Decode.string
               ``개정 전 직원 수 기타`` = get.Required.Field "reform_bfe_emp_co_etc" Decode.string
               ``정규직 수`` = get.Required.Field "rgllbr_co" Decode.decimal
-              ``정규직 단시간 근로자 수`` = get.Required.Field "rgllbr_abacpt_labrr_co" Decode.decimal
+              ``정규직 단시간 근로자 수`` = get.Required.Field "rgllbr_abacpt_labrr_co" decodeNumber
               ``계약직 수`` = get.Required.Field "cnttk_co" Decode.decimal
-              ``계약직 단시간 근로자 수`` = get.Required.Field "cnttk_abacpt_labrr_co" Decode.decimal
+              ``계약직 단시간 근로자 수`` = get.Required.Field "cnttk_abacpt_labrr_co" decodeNumber
               합계 = get.Required.Field "sm" Decode.decimal
               ``평균 근속 연수`` = get.Required.Field "avrg_cnwk_sdytrn" Decode.decimal
-              ``연간 급여 총액`` = get.Required.Field "fyer_salary_totamt" Decode.decimal
-              ``1인평균 급여 액`` = get.Required.Field "jan_salary_am" Decode.decimal
+              ``연간 급여 총액`` = get.Required.Field "fyer_salary_totamt" decodeNumber
+              ``1인평균 급여 액`` = get.Required.Field "jan_salary_am" decodeNumber
               비고 = get.Required.Field "rm" Decode.string })
 
 /// 2.9 이사, 감사의 개인별 보수 현황
@@ -453,7 +466,7 @@ and ``이사감사 개인별 보수 현황`` =
       ``이름``: string
       ``직위``: string
       ``보수 총액``: decimal
-      ``보수 총액 비 포함 보수``: decimal }
+      ``보수 총액 비 포함 보수``: decimal option }
 
     static member Decoder: Decoder<_> =
         Decode.object (fun get ->
@@ -464,7 +477,7 @@ and ``이사감사 개인별 보수 현황`` =
               ``이름`` = get.Required.Field "nm" Decode.string
               ``직위`` = get.Required.Field "ofcps" Decode.string
               ``보수 총액`` = get.Required.Field "mendng_totamt" Decode.decimal
-              ``보수 총액 비 포함 보수`` = get.Required.Field "mendng_totamt_ct_incls_mendng" Decode.decimal })
+              ``보수 총액 비 포함 보수`` = get.Required.Field "mendng_totamt_ct_incls_mendng" decodeNumber })
 
 /// 2.10 - 이사, 감사 전체의 보수 현황
 type ``이사감사 전체의 보수 현황 Response`` =

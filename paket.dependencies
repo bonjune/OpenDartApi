@@ -1,6 +1,6 @@
 source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Data
+nuget FsHttp
 nuget Thoth.Json.Net
 nuget Expecto
 
