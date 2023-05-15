@@ -3,9 +3,9 @@ module OpenDartApi.DartApi
 open System
 open System.IO
 open Thoth.Json.Net
-open ResponseTypes
 open FsHttp
-open FsHttp.Response
+
+open ResponseTypes
 
 type ReportCode =
     | Qrt1
