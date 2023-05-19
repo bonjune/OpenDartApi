@@ -1,8 +1,9 @@
 source https://api.nuget.org/v3/index.json
 
-nuget Deedle 3.0.0
-nuget FsHttp
-nuget Thoth.Json.Net
+nuget FSharp.Core >= 7.0.2
+nuget Deedle >= 3.0.0
+nuget FsHttp >= 10.0
+nuget Thoth.Json.Net >= 11.0
 nuget Expecto
 
 storage: none

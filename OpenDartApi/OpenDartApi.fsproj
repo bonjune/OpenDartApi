@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <WarnOn>3390;$(WarnOn)</WarnOn>
     <PackageId>OpenDartApi</PackageId>
     <Version>0.0.2</Version>
@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ResponseTypes.fs" />
-    <Compile Include="DartApi.fs" />
+    <Compile Include="ApiCaller.fs" />
     <Compile Include="DataFrame.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

@@ -1,4 +1,4 @@
-module OpenDartApi.DartApi
+module OpenDartApi.ApiCaller
 
 open System
 open System.IO
@@ -87,12 +87,29 @@ let HOST = "opendart.fss.or.kr"
 [<Literal>]
 let API_ENDPOINT = "https://opendart.fss.or.kr/api"
 
+[<Literal>]
+let DOWNLOAD_DIR = "./OpenDartApi-Data"
+
+// TODO
+type CorpCodeDownloadOptions =
+    /// Download corp codes file
+    /// only if the file does not exists in the designated path
+    | IfNotExist
+
+    /// Download corp codes file
+    /// if the file has not been updated over a week
+    | IfStaled
+
+    /// Download corp codes file anyway
+    | ForceDownload
+
+/// Provides methods for interacting with Dart API
 type DartApi(crtfc_key: string) =
     do
         if crtfc_key.Length <> 40 then
             invalidArg "crtfc_key" "crtfc_key should be of length 40"
 
-    member _.RequestAsync(path: string, ?queryParams) =
+    member private _.RequestAsync(path: string, ?queryParams) =
         let url = $"{API_ENDPOINT}/{path}"
 
         let queryParams = [ "crtfc_key", box crtfc_key; yield! defaultArg queryParams [] ]
@@ -117,11 +134,19 @@ type DartApi(crtfc_key: string) =
             return bytes
         }
 
-    member this.DownloadCordCode(path: string) =
+    member this.DownloadCordCode(path: string, options: CorpCodeDownloadOptions) =
+        // `path` will be the compressed zip file
         task {
-            let! bytes = this.CorpCodeZipBytes()
-            do! File.WriteAllBytesAsync(path, bytes)
-            do Compression.ZipFile.ExtractToDirectory(path, ".")
+            let dir = Directory.CreateDirectory(DOWNLOAD_DIR)
+            let xml = Path.Combine(dir.FullName, "CORPCODE.xml")
+
+            if File.Exists xml then
+                printfn "Skipping corp code download..."
+                return ()
+            else
+                let! bytes = this.CorpCodeZipBytes()
+                do! File.WriteAllBytesAsync(path, bytes)
+                do Compression.ZipFile.ExtractToDirectory(path, dir.FullName)
         }
 
 
@@ -304,7 +329,9 @@ type DartApi(crtfc_key: string) =
 
     /// 단일회사 주요계정
     /// Reference: https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019016
-    member this.``단일회사 주요계정``(corpCode: string, businessYear, reportCode: ReportCode) =
+    member this.``단일회사 주요계정``(corpCode: string, businessYear, ?reportCode: ReportCode) =
+        let reportCode = defaultArg reportCode ReportCode.Annual
+
         this.GetAndDecode(
             "fnlttSinglAcnt.json",
             [ "corp_code", corpCode

@@ -1,7 +1,7 @@
 module Tests
 
 open Expecto
-open OpenDartApi.DartApi
+open OpenDartApi.ApiCaller
 
 let notImplemented implInfo =
     test implInfo { failtest "not implemented" }
