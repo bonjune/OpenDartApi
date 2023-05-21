@@ -32,6 +32,9 @@ type DartDataFrame(certificateKey: string) =
     do printfn "%A" corpCodeTable.Keys
 
 
+    // TODO:
+    // it only shows major account such as current asset, non current asset, ...
+    // need to parse https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020
     member _.SingleCompanyMajorAccount(name: string, year: string) =
         let lookupResult, (code, stockCode, modifyDate) = corpCodeTable.TryGetValue name
 
