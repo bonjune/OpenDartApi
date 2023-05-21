@@ -31,8 +31,23 @@ type DartDataFrame(certificateKey: string) =
 
     do printfn "%A" corpCodeTable.Keys
 
-    member _.SingleCompanyMainAccount(name: string, year: string) =
+
+    member _.SingleCompanyMajorAccount(name: string, year: string) =
         let lookupResult, (code, stockCode, modifyDate) = corpCodeTable.TryGetValue name
+
+        let cols =
+            [ "개별/연결구분"
+              "재무제표구분"
+              "계정명"
+              "당기명"
+              "당기일자"
+              "당기금액"
+              "전기명"
+              "전기일자"
+              "전기금액"
+              "전전기명"
+              "전전기일자"
+              "전전기금액" ]
 
         if lookupResult then
             async {
@@ -41,9 +56,33 @@ type DartDataFrame(certificateKey: string) =
                 match data with
                 | Result.Ok accnt ->
                     match accnt.List with
-                    | Some rows -> return Frame.ofRecords rows
+                    | Some rows ->
+                        let frame = Frame.ofRecords rows |> Frame.sliceCols cols
+
+                        let cfs = Frame.filterRowsBy "개별/연결구분" (Some "CFS") frame
+                        let ofs = Frame.filterRowsBy "개별/연결구분" (Some "OFS") frame
+
+                        let cfsBs = Frame.filterRowsBy "재무제표구분" "BS" cfs
+                        let ofsBs = Frame.filterRowsBy "재무제표구분" "BS" ofs
+                        let cfsIs = Frame.filterRowsBy "재무제표구분" "IS" cfs
+                        let ofsIs = Frame.filterRowsBy "재무제표구분" "IS" ofs
+
+                        let pivot =
+                            Frame.pivotTable
+                                (fun k r -> r.GetAs<string option>("당기일자"))
+                                (fun k r -> r.GetAs<string>("계정명"))
+                                (fun frame -> frame.GetColumn("당기금액"))
+
+                        return
+                            {| CompanyName = name
+                               StockCode = code
+                               Consolidate = {| BS = pivot cfsBs; IS = pivot cfsIs |}
+                               Separate = {| BS = pivot ofsBs; IS = pivot ofsIs |} |}
                     | None -> return failwith "The response does not contain data"
                 | Result.Error err -> return failwithf "The response is malformed: %s" err
             }
         else
-            failwithf "There is no such company %s" name
+            failwithf "There is no such company: %s" name
+
+
+// 사업연도, 종목코드, 개별/연결, 당기, 당기일자
