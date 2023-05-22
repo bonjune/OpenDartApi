@@ -11,7 +11,7 @@
   <ItemGroup>
     <Compile Include="ResponseTypes.fs" />
     <Compile Include="ApiCaller.fs" />
-    <Compile Include="DataFrame.fs" />
+    <Compile Include="Observations.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
