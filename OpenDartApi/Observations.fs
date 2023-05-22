@@ -68,14 +68,17 @@ type DartObservations(certificateKey: string) =
                         let collectAccountRows (rows: 계정 array) =
                             seq {
                                 for row in rows do
-                                    if row.당기일자.IsSome then
-                                        yield row.계정명, (row.당기일자.Value, row.당기금액.Value)
+                                    yield
+                                        row.계정명,
+                                        [ if row.당기일자.IsSome then
+                                              yield (row.당기일자.Value, row.당기금액.Value)
 
-                                    if row.전기일자.IsSome then
-                                        yield row.계정명, (row.전기일자.Value, row.전기금액.Value)
+                                          if row.전기일자.IsSome then
+                                              yield (row.전기일자.Value, row.전기금액.Value)
 
-                                    if row.전전기일자.IsSome then
-                                        yield row.계정명, (row.전전기일자.Value, row.전전기금액.Value)
+                                          if row.전전기일자.IsSome then
+                                              yield (row.전전기일자.Value, row.전전기금액.Value) ]
+
                             }
                             |> dict
 
