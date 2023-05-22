@@ -5,13 +5,14 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <WarnOn>3390;$(WarnOn)</WarnOn>
     <PackageId>OpenDartApi</PackageId>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Authors>Bonjune Jang</Authors>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ResponseTypes.fs" />
     <Compile Include="ApiCaller.fs" />
     <Compile Include="Observations.fs" />
+    <None Include="../README.md" Pack="true" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
