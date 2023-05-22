@@ -5,6 +5,7 @@ open System.Xml.Linq
 open System.Threading.Tasks
 open Deedle
 
+open ResponseTypes
 open ApiCaller
 
 type DartDataFrame(certificateKey: string) =
@@ -62,31 +63,40 @@ type DartDataFrame(certificateKey: string) =
                     | Some rows ->
                         let frame = Frame.ofRecords rows |> Frame.sliceCols cols
 
-                        let cfs = Frame.filterRowsBy "개별/연결구분" (Some "CFS") frame
-                        let ofs = Frame.filterRowsBy "개별/연결구분" (Some "OFS") frame
+                        let cfs = Frame.filterRowsBy "개별/연결구분" (Some ConSep.Consolidated) frame
+                        let ofs = Frame.filterRowsBy "개별/연결구분" (Some ConSep.Separate) frame
 
-                        let cfsBs = Frame.filterRowsBy "재무제표구분" "BS" cfs
-                        let ofsBs = Frame.filterRowsBy "재무제표구분" "BS" ofs
-                        let cfsIs = Frame.filterRowsBy "재무제표구분" "IS" cfs
-                        let ofsIs = Frame.filterRowsBy "재무제표구분" "IS" ofs
+                        let cfsBs = Frame.filterRowsBy "재무제표구분" FinStat.BS cfs
+                        let ofsBs = Frame.filterRowsBy "재무제표구분" FinStat.BS ofs
+                        let cfsIs = Frame.filterRowsBy "재무제표구분" FinStat.IS cfs
+                        let ofsIs = Frame.filterRowsBy "재무제표구분" FinStat.IS ofs
 
                         let pivotThisTerm =
                             Frame.pivotTable
-                                (fun k r -> r.GetAs<string option>("당기일자"))
-                                (fun k r -> r.GetAs<string>("계정명"))
-                                (fun frame -> frame.GetColumn("당기금액") |> Series.firstValue)
+                                (fun k r -> r.GetAs<AccountDate option>("당기일자"))
+                                (fun k r -> r.GetAs<AccountName>("계정명"))
+                                (fun frame ->
+                                    frame.GetColumn<decimal option>("당기금액")
+                                    |> Series.mapValues (fun d -> d.Value)
+                                    |> Series.firstValue)
 
                         let pivotFormerTerm =
                             Frame.pivotTable
-                                (fun k r -> r.GetAs<string option>("전기일자"))
-                                (fun k r -> r.GetAs<string>("계정명"))
-                                (fun frame -> frame.GetColumn("전기금액") |> Series.firstValue)
+                                (fun k r -> r.GetAs<AccountDate option>("전기일자"))
+                                (fun k r -> r.GetAs<AccountName>("계정명"))
+                                (fun frame ->
+                                    frame.GetColumn<decimal option>("전기금액")
+                                    |> Series.mapValues (fun d -> d.Value)
+                                    |> Series.firstValue)
 
                         let pivotBeforeFormerTerm =
                             Frame.pivotTable
-                                (fun k r -> r.GetAs<string option>("전전기일자"))
-                                (fun k r -> r.GetAs<string>("계정명"))
-                                (fun frame -> frame.GetColumn("전전기금액") |> Series.firstValue)
+                                (fun k r -> r.GetAs<AccountDate option>("전전기일자"))
+                                (fun k r -> r.GetAs<AccountName>("계정명"))
+                                (fun frame ->
+                                    frame.GetColumn<decimal option>("전전기금액")
+                                    |> Series.mapValues (fun d -> d.Value)
+                                    |> Series.firstValue)
 
                         let pivotTerms table =
                             Frame.mergeAll [ pivotThisTerm table; pivotFormerTerm table; pivotBeforeFormerTerm table ]

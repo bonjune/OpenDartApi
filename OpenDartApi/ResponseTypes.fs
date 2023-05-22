@@ -1,5 +1,6 @@
 module OpenDartApi.ResponseTypes
 
+open System
 open Thoth.Json.Net
 
 let toDecimal =
@@ -24,6 +25,102 @@ let decodeNumber: Decoder<decimal option> =
                 Decode.fail "not expected")
 
     Decode.oneOf [ number; dash ]
+
+type AccountDate =
+    | Exact of DateOnly
+    | Span of fromDate: DateOnly * toDate: DateOnly
+
+    override this.ToString() =
+        match this with
+        | Exact dateOnly -> dateOnly.ToString()
+        | Span(fromDate, toDate) -> fromDate.ToString() + " ~ " + toDate.ToString()
+
+let parseDateOnly date = DateOnly.ParseExact(date, "yyyy.MM.dd")
+
+let parseAccountDate (s: string) =
+    match s.Split(' ') with
+    | [| date; "현재" |] -> Exact(parseDateOnly date)
+    | [| fromDate; "~"; toDate |] ->
+        let fromDate = parseDateOnly fromDate
+        let toDate = parseDateOnly toDate
+        Span(fromDate, toDate)
+    | _ -> failwith "Failed to parse account date"
+
+let decodeAccountDate: Decoder<AccountDate> =
+    Decode.string |> Decode.map parseAccountDate
+
+type ConSep =
+    | Consolidated = 0
+    | Separate = 1
+
+let (|CFS|OFS|) s =
+    match s with
+    | "CFS" -> CFS
+    | "OFS" -> OFS
+    | _ -> failwithf "Malformed Consolidated/Separate Financial Statements string: %s" s
+
+let decodeConSep: Decoder<ConSep> =
+    Decode.string
+    |> Decode.map (function
+        | CFS -> ConSep.Consolidated
+        | OFS -> ConSep.Separate)
+
+type FinStat =
+    | BS = 0
+    | IS = 1
+
+let (|BS|IS|) s =
+    match s with
+    | "BS" -> BS // 재무상태표
+    | "IS" -> IS // 손익상태표
+    | _ -> failwithf "Malformed Balance/Income Statement string: %s" s
+
+let decodeFinStat =
+    Decode.string
+    |> Decode.map (function
+        | BS -> FinStat.BS
+        | IS -> FinStat.IS)
+
+let decodeTerm: Decoder<int> =
+    Decode.string |> Decode.map (fun s -> int (s.Split(' ')[1]))
+
+type AccountName =
+    | CurrentAssets = 0
+    | NonCurrentAssets = 1
+    | TotalAssets = 2
+    | CurrentLiabilities = 3
+    | NonCurrentLiabilities = 4
+    | TotalLiabilities = 5
+    | CapitalStock = 6
+    | RetainedEarnings = 7
+    | TotalEquity = 8
+    | Revenue = 9
+    | OperatingProfit = 10
+    | IncomeBeforeTax = 11
+    | NetIncome = 12
+
+let parseAccountName (accountName: string) =
+    match accountName with
+    | "유동자산" -> Some AccountName.CurrentAssets
+    | "비유동자산" -> Some AccountName.NonCurrentAssets
+    | "자산총계" -> Some AccountName.TotalAssets
+    | "유동부채" -> Some AccountName.CurrentLiabilities
+    | "비유동부채" -> Some AccountName.NonCurrentLiabilities
+    | "부채총계" -> Some AccountName.TotalLiabilities
+    | "자본금" -> Some AccountName.CapitalStock
+    | "이익잉여금" -> Some AccountName.RetainedEarnings
+    | "자본총계" -> Some AccountName.TotalEquity
+    | "매출액" -> Some AccountName.Revenue
+    | "영업이익" -> Some AccountName.OperatingProfit
+    | "법인세차감전 순이익" -> Some AccountName.IncomeBeforeTax
+    | "당기순이익" -> Some AccountName.NetIncome
+    | _ -> None
+
+let decodeAccountName: Decoder<AccountName> =
+    Decode.string
+    |> Decode.map parseAccountName
+    |> Decode.map (fun opt -> opt.Value)
+
 
 /// 1.2 기업개황 API 응답
 type ``기업개황 Response`` =
@@ -621,24 +718,24 @@ and 계정 =
       종목코드: string option
       ``리포트 코드``: string
       계정Id: string option
-      계정명: string
+      계정명: AccountName
       계정상세: string option
-      ``개별/연결구분``: string option
-      ``개별/연결명``: string option
-      재무제표구분: string
-      재무제표명: string
-      당기명: string
-      당기일자: string option
+      ``개별/연결구분``: ConSep option
+      // ``개별/연결명``: string option
+      재무제표구분: FinStat
+      // 재무제표명: string
+      당기명: int
+      당기일자: AccountDate option
       당기금액: decimal option
       당기누적금액: decimal option
-      전기명: string
-      전기일자: string option
+      전기명: int
+      전기일자: AccountDate option
       전기금액: decimal option
       전기누적금액: decimal option
       ``전기명(분/반기)``: string option
       ``전기금액(분/반기)``: decimal option
-      전전기명: string option
-      전전기일자: string option
+      전전기명: int option
+      전전기일자: AccountDate option
       전전기금액: decimal option
       ``계정과목 정렬순서``: int }
 
@@ -649,23 +746,23 @@ and 계정 =
               종목코드 = get.Optional.Field "stock_code" Decode.string
               ``리포트 코드`` = get.Required.Field "reprt_code" Decode.string
               계정Id = get.Optional.Field "account_id" Decode.string
-              계정명 = get.Required.Field "account_nm" Decode.string
+              계정명 = get.Required.Field "account_nm" decodeAccountName
               계정상세 = get.Optional.Field "account_detail" Decode.string
-              ``개별/연결구분`` = get.Optional.Field "fs_div" Decode.string
-              ``개별/연결명`` = get.Optional.Field "fs_nm" Decode.string
-              재무제표구분 = get.Required.Field "sj_div" Decode.string
-              재무제표명 = get.Required.Field "sj_nm" Decode.string
-              당기명 = get.Required.Field "thstrm_nm" Decode.string
-              당기일자 = get.Optional.Field "thstrm_dt" Decode.string
+              ``개별/연결구분`` = get.Optional.Field "fs_div" decodeConSep
+              // ``개별/연결명`` = get.Optional.Field "fs_nm" Decode.string
+              재무제표구분 = get.Required.Field "sj_div" decodeFinStat
+              // 재무제표명 = get.Required.Field "sj_nm" Decode.string
+              당기명 = get.Required.Field "thstrm_nm" decodeTerm
+              당기일자 = get.Optional.Field "thstrm_dt" decodeAccountDate
               당기금액 = get.Optional.Field "thstrm_amount" Decode.string |> toDecimal
               당기누적금액 = get.Optional.Field "thstrm_add_amount" Decode.string |> toDecimal
-              전기명 = get.Required.Field "frmtrm_nm" Decode.string
-              전기일자 = get.Optional.Field "frmtrm_dt" Decode.string
+              전기명 = get.Required.Field "frmtrm_nm" decodeTerm
+              전기일자 = get.Optional.Field "frmtrm_dt" decodeAccountDate
               전기금액 = get.Optional.Field "frmtrm_amount" Decode.string |> toDecimal
               ``전기명(분/반기)`` = get.Optional.Field "frmtrm_q_nm" Decode.string
               ``전기금액(분/반기)`` = get.Optional.Field "frmtrm_q_amount" Decode.decimal
               전기누적금액 = get.Optional.Field "frmtrm_add_amount" Decode.string |> toDecimal
-              전전기명 = get.Optional.Field "bfefrmtrm_nm" Decode.string
-              전전기일자 = get.Optional.Field "bfefrmtrm_dt" Decode.string
+              전전기명 = get.Optional.Field "bfefrmtrm_nm" decodeTerm
+              전전기일자 = get.Optional.Field "bfefrmtrm_dt" decodeAccountDate
               전전기금액 = get.Optional.Field "bfefrmtrm_amount" Decode.string |> toDecimal
               ``계정과목 정렬순서`` = get.Required.Field "ord" Decode.int })
