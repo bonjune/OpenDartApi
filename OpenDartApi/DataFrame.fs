@@ -70,22 +70,39 @@ type DartDataFrame(certificateKey: string) =
                         let cfsIs = Frame.filterRowsBy "재무제표구분" "IS" cfs
                         let ofsIs = Frame.filterRowsBy "재무제표구분" "IS" ofs
 
-                        let pivot =
+                        let pivotThisTerm =
                             Frame.pivotTable
                                 (fun k r -> r.GetAs<string option>("당기일자"))
                                 (fun k r -> r.GetAs<string>("계정명"))
-                                (fun frame -> frame.GetColumn("당기금액"))
+                                (fun frame -> frame.GetColumn("당기금액") |> Series.firstValue)
+
+                        let pivotFormerTerm =
+                            Frame.pivotTable
+                                (fun k r -> r.GetAs<string option>("전기일자"))
+                                (fun k r -> r.GetAs<string>("계정명"))
+                                (fun frame -> frame.GetColumn("전기금액") |> Series.firstValue)
+
+                        let pivotBeforeFormerTerm =
+                            Frame.pivotTable
+                                (fun k r -> r.GetAs<string option>("전전기일자"))
+                                (fun k r -> r.GetAs<string>("계정명"))
+                                (fun frame -> frame.GetColumn("전전기금액") |> Series.firstValue)
+
+                        let pivotTerms table =
+                            Frame.mergeAll [ pivotThisTerm table; pivotFormerTerm table; pivotBeforeFormerTerm table ]
 
                         return
                             {| CompanyName = name
                                StockCode = code
-                               Consolidate = {| BS = pivot cfsBs; IS = pivot cfsIs |}
-                               Separate = {| BS = pivot ofsBs; IS = pivot ofsIs |} |}
+                               Orig = frame
+                               Consolidate =
+                                {| BS = pivotTerms cfsBs
+                                   IS = pivotTerms cfsIs |}
+                               Separate =
+                                {| BS = pivotTerms ofsBs
+                                   IS = pivotTerms ofsIs |} |}
                     | None -> return failwith "The response does not contain data"
                 | Result.Error err -> return failwithf "The response is malformed: %s" err
             }
         else
             failwithf "There is no such company: %s" name
-
-
-// 사업연도, 종목코드, 개별/연결, 당기, 당기일자
